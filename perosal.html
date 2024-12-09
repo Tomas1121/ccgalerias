@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Directorio de Locales</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Estilo base para el botón de regreso */
+    .back-button {
+      position: fixed; /* Cambié a 'fixed' para mantenerlo visible siempre */
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      text-decoration: none;
+      color: #fff;
+      background-color: #4CAF50;
+      border: none;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: background-color 0.3s;
+      z-index: 10;
+    }
+
+    .back-button:hover {
+      background-color: #45a049;
+    }
+
+    /* Estilos generales para el contenido */
+    #contentSection {
+      padding-top: 60px; /* Ajusta el espacio superior para que el contenido no quede cubierto por el botón */
+      padding: 20px;
+    }
+
+    /* Estilo para el input de filtro */
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    /* Estilo para la tabla */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #1d1d1d;
+    }
+
+    th {
+      background-color: #910d0d;
+    }
+
+    /* Estilo para el mensaje de autorización */
+    #authMessage {
+      margin-top: 20px;
+      padding: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+    }
+
+    .authorized {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    .unauthorized {
+      background-color: #f44336;
+      color: white;
+    }
+
+    /* Media Queries para hacer el diseño más adaptable */
+    @media (max-width: 768px) {
+      /* Ajustar el tamaño del botón de regreso */
+      .back-button {
+        font-size: 14px;
+        padding: 8px 16px;
+      }
+
+      /* Ajustar el tamaño del input y tabla */
+      input[type="text"] {
+        font-size: 14px;
+        padding: 10px;
+      }
+
+      table th, table td {
+        font-size: 14px;
+        padding: 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      /* Cambiar el tamaño de las celdas de la tabla */
+      table th, table td {
+        font-size: 12px;
+        padding: 8px;
+      }
+
+      /* Ajustar el botón de regreso */
+      .back-button {
+        font-size: 12px;
+        padding: 6px 12px;
+      }
+
+      /* Asegurar que el input de filtro ocupe todo el ancho en móviles */
+      input[type="text"] {
+        font-size: 12px;
+        padding: 8px;
+      }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <!-- Botón para regresar al inicio -->
+  <a href="index2.html" class="back-button">⬅ Regresar</a>
+
+  <!-- Contenido principal -->
+  <div id="contentSection">
+    <div class="header">
+      <h1>Directorio de Locales</h1>
+    </div>
+
+    <!-- Input para el filtro -->
+    <input type="text" id="filterInput" placeholder="Escribe el número de cédula para filtrar...">
+
+    <!-- Tabla para mostrar los datos -->
+    <table id="dataTable">
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <!-- Mensaje de autorización -->
+    <div id="authMessage"></div>
+  </div>
+
+  <script>
+    document.getElementById("filterInput").addEventListener("input", handleFilter);
+
+    let data = []; // Array para guardar los datos cargados
+
+    // Función para cargar automáticamente el archivo Excel predeterminado
+    function loadDefaultExcel() {
+      fetch('data2.xlsx')
+        .then(response => response.arrayBuffer())
+        .then(buffer => {
+          const workbook = XLSX.read(buffer, { type: 'array' });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          data = XLSX.utils.sheet_to_json(worksheet);
+          displayData(data); // Muestra todos los datos al inicio
+        })
+        .catch(error => console.error("Error al cargar el archivo Excel:", error));
+    }
+
+    // Función para mostrar los datos en la tabla
+    function displayData(dataArray) {
+      const tableHead = document.getElementById("tableHead");
+      const tableBody = document.getElementById("tableBody");
+
+      tableHead.innerHTML = "";
+      tableBody.innerHTML = "";
+
+      if (dataArray.length === 0) return;
+
+      // Definir las columnas específicas
+      const columns = ["NÚMERO DE LOCAL", "NOMBRE DE LOCAL", "NOMBRES Y APELLIDOS", "CEDULA", "TELEFONO"];
+      
+      // Crear las cabeceras de la tabla
+      const headerRow = document.createElement("tr");
+      columns.forEach(column => {
+        const th = document.createElement("th");
+        th.textContent = column;
+        headerRow.appendChild(th);
+      });
+      tableHead.appendChild(headerRow);
+
+      // Filtrar y mostrar solo los datos relevantes
+      dataArray.forEach(row => {
+        const rowElement = document.createElement("tr");
+        columns.forEach(column => {
+          const cell = document.createElement("td");
+          cell.textContent = row[column] || '';  // Si no hay dato, dejar en blanco
+          rowElement.appendChild(cell);
+        });
+        tableBody.appendChild(rowElement);
+      });
+    }
+
+    // Función para filtrar los datos por el número de cédula
+    function handleFilter(event) {
+      const query = event.target.value.trim().toLowerCase();
+
+      // Si el campo está vacío, no mostrar nada
+      if (query === "") {
+        document.getElementById("tableBody").innerHTML = ""; // Limpiar la tabla
+        document.getElementById("authMessage").style.display = "none"; // Ocultar el mensaje
+        return;
+      }
+
+      const filteredData = data.filter(row =>
+        String(row["CEDULA"]).toLowerCase().includes(query) // Filtrar solo por el campo "CEDULA"
+      );
+
+      displayData(filteredData);
+
+      // Verificar si se encontró un resultado
+      const authMessage = document.getElementById("authMessage");
+      if (filteredData.length > 0) {
+        authMessage.textContent = "Personal autorizado";
+        authMessage.className = "authorized"; // Aplicar estilo verde
+      } else {
+        authMessage.textContent = "Personal no autorizado";
+        authMessage.className = "unauthorized"; // Aplicar estilo rojo
+      }
+
+      // Mostrar el mensaje
+      authMessage.style.display = "block";
+    }
+
+    // Cargar datos al iniciar la página
+    window.onload = function() {
+      loadDefaultExcel();
+    };
+  </script>
+</body>
+</html>
